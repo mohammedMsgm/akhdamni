@@ -16,6 +16,8 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.webkit.CookieManager;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -24,46 +26,38 @@ import android.widget.Toast;
 public class MainActivity extends AppCompatActivity {
     private WebView webView;
     ProgressDialog progressDialog;
+    View noInternet;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        progressDialog = new ProgressDialog(this);
-        startWebView("https://akhdamni.com/");
-        progressDialog.setProgressStyle(R.color.red);
-
-    }
-    @Override
-    public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            super.onBackPressed();
-        }
-    }
-    private void startWebView(String url) {
         setContentView(R.layout.activity_main);
         webView = (WebView) findViewById(R.id.webview);
+        noInternet = findViewById(R.id.no_internet);
         webView.setWebViewClient(new WebViewClient());
+        webView.loadUrl("https://akhdamni.com/");
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Loading...");
+        progressDialog.show();
         webView.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
-        progressDialog.show();
-        WebSettings settings = webView.getSettings();
-
-        settings.setJavaScriptEnabled(true);
-        webView.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
-
-        webView.getSettings().setBuiltInZoomControls(true);
-        webView.getSettings().setUseWideViewPort(true);
-        webView.getSettings().setLoadWithOverviewMode(true);
-
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Loading...");
-        progressDialog.show();
-
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageCommitVisible(WebView view, String url) {
+                super.onPageCommitVisible(view, url);
+                if (progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                if (progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
+            }
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 if (!url.contains("https://akhdamni.com/")){
@@ -78,17 +72,19 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onPageFinished(WebView view, String url) {
-                if (progressDialog.isShowing()) {
-                    progressDialog.dismiss();
-                }
-            }
-
-            @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                noInternet.setVisibility(View.VISIBLE);
                 Toast.makeText(MainActivity.this, "Error:" + description, Toast.LENGTH_SHORT).show();
+
             }
         });
-        webView.loadUrl(url);
+    }
+    @Override
+    public void onBackPressed() {
+        if (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed();
+        }
     }
 }
